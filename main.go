@@ -43,7 +43,7 @@ func main() {
 
 	//render posts
 	for _, post := range posts {
-		writeFile(post.OutputFileName(), post.HTML)
+		writeFile(post.OutputFileName(), post.Title(), post.HTML)
 	}
 
 	//index.html and all.html show posts in reverse order
@@ -51,7 +51,8 @@ func main() {
 	RenderIndex(posts)
 	RenderAll(posts)
 
-	//TODO: generate index.html, all.html
+	//write additional assets
+	FailOnErr(ioutil.WriteFile("output/style.css", []byte(AssetStyleCss), 0644))
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -125,6 +126,17 @@ func (p *Post) OutputFileName() string {
 	return "posts/" + p.Slug + ".html"
 }
 
+var initialHeadingRx = regexp.MustCompile(`^<h1>(.+?)</h1>`)
+
+//Title returns the contents of the first <h1>, or the slug as a fallback.
+func (p *Post) Title() string {
+	match := initialHeadingRx.FindStringSubmatch(p.HTML)
+	if match != nil {
+		return match[1]
+	}
+	return p.Slug
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // output formatting
 
@@ -157,27 +169,18 @@ func RenderIndex(posts []*Post) {
 		articlesStr = "<article>" + strings.Join(articles, "</article><article>") + "</article>"
 	}
 
-	writeFile("index.html", articlesStr)
+	writeFile("index.html", "", articlesStr)
 }
-
-var initialHeadingRx = regexp.MustCompile(`^<h1>(.+?)</h1>`)
 
 //RenderAll generates the all.html page.
 func RenderAll(posts []*Post) {
 	items := ""
 	for _, post := range posts {
 		//show either the initial <h1> or fall back to the slug
-		var itemText string
-		match := initialHeadingRx.FindStringSubmatch(post.HTML)
-		if match == nil {
-			itemText = post.Slug
-		} else {
-			itemText = match[1]
-		}
-		items += fmt.Sprintf("<li><a href=\"%s\">%s</a></li>", post.OutputFileName(), itemText)
+		items += fmt.Sprintf("<li><a href=\"%s\">%s</a></li>", post.OutputFileName(), post.Title())
 	}
 
-	writeFile("all.html", "<section class=\"all\"><ul>"+items+"</ul></section>")
+	writeFile("all.html", "Article list", "<section class=\"all\"><ul>"+items+"</ul></section>")
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -199,6 +202,21 @@ func reverse(list []*Post) {
 	}
 }
 
-func writeFile(path string, contents string) {
-	FailOnErr(ioutil.WriteFile("output/"+path, []byte(contents), 0644))
+func writeFile(path, title, contents string) {
+	str := AssetTemplateHtml
+
+	slashCount := strings.Count(path, "/")
+	dotdots := make([]string, 0, slashCount)
+	for idx := 0; idx < slashCount; idx++ {
+		dotdots = append(dotdots, "..")
+	}
+	if len(dotdots) == 0 {
+		dotdots = []string{"."}
+	}
+	str = strings.Replace(str, "%PATH_TO_ROOT%", strings.Join(dotdots, "/"), -1)
+
+	str = strings.Replace(str, "%TITLE%", title, -1)
+	str = strings.Replace(str, "%CONTENT%", contents, -1)
+
+	FailOnErr(ioutil.WriteFile("output/"+path, []byte(str), 0644))
 }

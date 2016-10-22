@@ -138,7 +138,10 @@ func (p *Post) Render() {
 	if ctime == mtime {
 		str += fmt.Sprintf("<p><i>Created: %s</i></p>", ctime)
 	} else {
-		str += fmt.Sprintf("<p><i>Created: %s</i><br><i>Last edited: %s</i></p>", ctime, mtime)
+		historyUrl := fmt.Sprintf("https://github.com/majewsky/blog-data/commits/master/posts/%s.md", p.Slug)
+		str += fmt.Sprintf(
+			"<p><i>Created: %s</i><br><i>Last edited: <a href=\"%s\" title=\"Commits on GitHub\">%s</a></i></p>",
+			ctime, historyUrl, mtime)
 	}
 
 	writeFile(p.OutputFileName(), p.Title(), str)

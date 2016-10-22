@@ -26,6 +26,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/golang-commonmark/markdown"
 )
@@ -61,7 +62,7 @@ func main() {
 
 	//render posts
 	for _, post := range posts {
-		writeFile(post.OutputFileName(), post.Title(), post.HTML)
+		post.Render()
 	}
 
 	//index.html and sitemap.html show posts in reverse order
@@ -153,6 +154,14 @@ func (p *Post) Title() string {
 		return match[1]
 	}
 	return p.Slug
+}
+
+//Render writes the post to its output file.
+func (p *Post) Render() {
+	timeStr := time.Unix(int64(p.Timestamp), 0).UTC().Format(time.RFC1123)
+	str := p.HTML + fmt.Sprintf("<p><i>Written: %s</i></p>", timeStr)
+
+	writeFile(p.OutputFileName(), p.Title(), str)
 }
 
 ////////////////////////////////////////////////////////////////////////////////

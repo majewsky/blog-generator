@@ -233,7 +233,11 @@ func writeFile(path, title, contents string) {
 	}
 	str = strings.Replace(str, "%PATH_TO_ROOT%", strings.Join(dotdots, "/"), -1)
 
-	str = strings.Replace(str, "%TITLE%", title, -1)
+	if title == "" {
+		str = strings.Replace(str, "%TITLE%", "Stefan's Blog", -1)
+	} else {
+		str = strings.Replace(str, "%TITLE%", title+" &ndash; Stefan's Blog", -1)
+	}
 	str = strings.Replace(str, "%CONTENT%", contents, -1)
 
 	FailOnErr(ioutil.WriteFile("output/"+path, []byte(str), 0644))

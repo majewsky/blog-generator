@@ -19,11 +19,14 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/golang-commonmark/markdown"
@@ -31,65 +34,73 @@ import (
 
 //Post is a blog post.
 type Post struct {
-	Timestamp uint64
-	Slug      string
-	Markdown  []byte
-	HTML      string
+	CreationTimestamp   uint64
+	LastEditedTimestamp uint64
+	Slug                string
+	Markdown            []byte
+	HTML                string
 }
 
 //Posts is a list of Post (only required for sorting).
 type Posts []*Post
 
 func (p Posts) Len() int           { return len(p) }
-func (p Posts) Less(i, j int) bool { return p[i].Timestamp < p[j].Timestamp }
+func (p Posts) Less(i, j int) bool { return p[i].CreationTimestamp < p[j].CreationTimestamp }
 func (p Posts) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 
-var postFilenameRx = regexp.MustCompile(`^(\d{10})-([^/]+)\.md$`)
-
-func allPosts() ([]*Post, error) {
-	dir, err := os.Open("posts")
-	if err != nil {
-		return nil, err
-	}
+func allPosts() []*Post {
+	dir, err := os.Open("data/posts")
+	FailOnErr(err)
 	fis, err := dir.Readdir(-1)
-	if err != nil {
-		return nil, err
-	}
+	FailOnErr(err)
 
 	var posts Posts
 	for _, fi := range fis {
-		if fi.Mode().IsRegular() && postFilenameRx.MatchString(fi.Name()) {
-			post, err := NewPost(fi.Name())
-			FailOnErr(err) //should be unreachable
-			posts = append(posts, post)
+		if fi.Mode().IsRegular() && strings.HasSuffix(fi.Name(), ".md") {
+			posts = append(posts, NewPost(fi.Name()))
 		}
 	}
 
-	return posts, nil
+	return posts
 }
 
 //NewPost creates a new Post instance.
-func NewPost(fileName string) (*Post, error) {
-	//parse filename
-	match := postFilenameRx.FindStringSubmatch(fileName)
-	if match == nil {
-		return nil, fmt.Errorf("%s is not a valid post filename", fileName)
+func NewPost(fileName string) *Post {
+	//check `git log` for creation and last modification timestamp
+	cmd := exec.Command(
+		"git", "-C", "data",
+		"log", "--pretty=%at", "-M", "--follow",
+		"--", "posts/"+fileName,
+	)
+	var buf bytes.Buffer
+	cmd.Stdout = &buf
+	cmd.Stderr = os.Stderr
+	FailOnErr(cmd.Run())
+
+	var creationTimestamp uint64 = 0
+	var lastEditedTimestamp uint64 = 0
+	for _, str := range strings.Fields(string(buf.Bytes())) {
+		timestamp, _ := strconv.ParseUint(str, 10, 64)
+		//"last edited" is the chronologically largest timestamp
+		if lastEditedTimestamp < timestamp {
+			lastEditedTimestamp = timestamp
+		}
+		//"creation" is the timestamp on the hierarchically lowest timestamp
+		creationTimestamp = timestamp
 	}
-	timestamp, _ := strconv.ParseUint(match[1], 10, 64)
-	slug := match[2]
 
 	//read contents
-	markdownBytes, err := ioutil.ReadFile("posts/" + fileName)
+	markdownBytes, err := ioutil.ReadFile("data/posts/" + fileName)
 	FailOnErr(err)
 
 	//generate HTML
-
 	return &Post{
-		Timestamp: timestamp,
-		Slug:      slug,
-		Markdown:  markdownBytes,
-		HTML:      markdown.New().RenderToString(markdownBytes),
-	}, nil
+		CreationTimestamp:   creationTimestamp,
+		LastEditedTimestamp: lastEditedTimestamp,
+		Slug:                strings.TrimSuffix(fileName, ".md"),
+		Markdown:            markdownBytes,
+		HTML:                markdown.New().RenderToString(markdownBytes),
+	}
 }
 
 //OutputFileName returns the output filename below output/ for this Post.
@@ -108,15 +119,27 @@ func (p *Post) Title() string {
 	return p.Slug
 }
 
-//Time returns the post timestamp as time.Time object in UTC.
-func (p *Post) Time() time.Time {
-	return time.Unix(int64(p.Timestamp), 0).UTC()
+//CreationTime returns the creation timestamp as time.Time object in UTC.
+func (p *Post) CreationTime() time.Time {
+	return time.Unix(int64(p.CreationTimestamp), 0).UTC()
+}
+
+//LastEditedTime returns the timestamp of the last edit as time.Time object in UTC.
+func (p *Post) LastEditedTime() time.Time {
+	return time.Unix(int64(p.LastEditedTimestamp), 0).UTC()
 }
 
 //Render writes the post to its output file.
 func (p *Post) Render() {
-	timeStr := p.Time().Format(time.RFC1123)
-	str := p.HTML + fmt.Sprintf("<p><i>Written: %s</i></p>", timeStr)
+	str := p.HTML
+	ctime := p.CreationTime().Format(time.RFC1123)
+	mtime := p.LastEditedTime().Format(time.RFC1123)
+
+	if ctime == mtime {
+		str += fmt.Sprintf("<p><i>Created: %s</i></p>", ctime)
+	} else {
+		str += fmt.Sprintf("<p><i>Created: %s</i><br><i>Last edited: %s</i></p>", ctime, mtime)
+	}
 
 	writeFile(p.OutputFileName(), p.Title(), str)
 }

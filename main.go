@@ -33,8 +33,7 @@ func main() {
 	FailOnErr(err)
 
 	//list posts
-	posts, err := allPosts()
-	FailOnErr(err)
+	posts := allPosts()
 	sort.Sort(Posts(posts))
 
 	//deduplicate slugs
@@ -119,7 +118,7 @@ func RenderAll(posts []*Post) {
 
 	for _, post := range posts {
 		//add a month header when this post is from a different month than the previous one
-		month := post.Time().Format("Jan 2006")
+		month := post.CreationTime().Format("Jan 2006")
 		if month != currentMonth {
 			items += fmt.Sprintf("</ul><h2>%s</h2><ul>", month)
 			currentMonth = month

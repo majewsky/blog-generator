@@ -1,0 +1,51 @@
+html {
+    background: #FFE;
+    font-size: 18px;
+    font-family: "Source Sans Pro", sans-serif;
+    line-height: 1.6;
+    text-rendering: optimizeLegibility;
+    font-variant-ligatures: common-ligatures;
+    font-kerning: normal;
+}
+
+body {
+    max-width: 800px;
+    margin: 40px auto;
+    padding: 0 10px;
+}
+
+h1, h2, h3 {
+    line-height: 1.2;
+}
+
+p {
+    font-family: "Source Serif Pro", serif;
+    hyphens: auto;
+    -ms-hyphens: auto;
+    -webkit-hyphens: auto;
+}
+
+header, h1 a {
+    text-align: center;
+    color: #C33;
+}
+
+nav {
+    text-align: center;
+}
+
+a {
+    color: #F33;
+    text-decoration: none !important;
+}
+
+article a:active, article a:visited,
+section a:active, section a:visited {
+    color: #966;
+}
+
+pre {
+    border-radius: 5px;
+    padding: 0 0.5rem;
+    background: #DDC;
+}

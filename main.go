@@ -49,6 +49,7 @@ func main() {
 	//index.html and all.html show posts in reverse order
 	reverse(posts)
 	RenderIndex(posts)
+	RenderAll(posts)
 
 	//TODO: generate index.html, all.html
 }
@@ -157,6 +158,26 @@ func RenderIndex(posts []*Post) {
 	}
 
 	writeFile("index.html", articlesStr)
+}
+
+var initialHeadingRx = regexp.MustCompile(`^<h1>(.+?)</h1>`)
+
+//RenderAll generates the all.html page.
+func RenderAll(posts []*Post) {
+	items := ""
+	for _, post := range posts {
+		//show either the initial <h1> or fall back to the slug
+		var itemText string
+		match := initialHeadingRx.FindStringSubmatch(post.HTML)
+		if match == nil {
+			itemText = post.Slug
+		} else {
+			itemText = match[1]
+		}
+		items += fmt.Sprintf("<li><a href=\"%s\">%s</a></li>", post.OutputFileName(), itemText)
+	}
+
+	writeFile("all.html", "<section class=\"all\"><ul>"+items+"</ul></section>")
 }
 
 ////////////////////////////////////////////////////////////////////////////////

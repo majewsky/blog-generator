@@ -22,9 +22,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"regexp"
 	"sort"
 	"strings"
+	"time"
 )
 
 func main() {
@@ -64,6 +64,7 @@ func main() {
 	reverse(posts)
 	RenderIndex(posts)
 	RenderAll(posts)
+	RenderRSS(posts)
 
 	//write additional assets
 	FailOnErr(ioutil.WriteFile("output/style.css", []byte(AssetStyleCss), 0644))
@@ -71,8 +72,6 @@ func main() {
 
 ////////////////////////////////////////////////////////////////////////////////
 // output formatting
-
-var innerHeadingsRx = regexp.MustCompile(`(?s)^(.+?)<h[1-6]>`)
 
 //RenderIndex generates the index.html page.
 func RenderIndex(posts []*Post) {
@@ -87,15 +86,7 @@ func RenderIndex(posts []*Post) {
 		articles := make([]string, 0, len(posts))
 		for _, post := range posts {
 			//shorten post.HTML if it contains multiple headings
-			htmlStr := post.HTML
-			match := innerHeadingsRx.FindStringSubmatch(htmlStr)
-			if match != nil {
-				htmlStr = match[1]
-				htmlStr += fmt.Sprintf(
-					"<p class=\"more\"><a href=\"%s\">Read more...</a></p>",
-					post.OutputFileName(),
-				)
-			}
+			htmlStr := post.ShortenedHTML()
 			//include permalink in initial heading
 			htmlStr = initialHeadingRx.ReplaceAllStringFunc(htmlStr, func(h1str string) string {
 				match := initialHeadingRx.FindStringSubmatch(h1str)
@@ -131,6 +122,50 @@ func RenderAll(posts []*Post) {
 	writeFile("sitemap.html", "Article list",
 		"<section class=\"sitemap\">"+items+"</ul></section>",
 	)
+}
+
+//RenderRSS generates the rss.xml document.
+func RenderRSS(posts []*Post) {
+	//not more than 10 posts
+	if len(posts) > 10 {
+		posts = posts[:10]
+	}
+
+	var lines []string
+	addLine := func(line string, args ...interface{}) {
+		if len(args) > 0 {
+			line = fmt.Sprintf(line, args...)
+		}
+		lines = append(lines, line)
+	}
+
+	addLine(`<?xml version="1.0"?>`)
+	addLine(`<rss version="2.0"><channel>`)
+	addLine(`  <title>Stefan Majewsky's Blog</title>`)
+	addLine(`  <link>https://blog.bethselamin.de</link>`)
+	addLine(`  <description>Personal blog of Stefan Majewsky</description>`)
+	addLine(`  <language>en</language>`)
+	addLine(`  <lastBuildDate>%s</lastBuildDate>`, time.Now().UTC().Format(time.RFC1123Z))
+	for _, post := range posts {
+		addLine(`  <item>`)
+		addLine(`    <title>%s</title>`, post.Title())
+		addLine(`    <description>%s</description>`, escapeHTML(post.ShortenedHTML()))
+		addLine(`    <link>https://blog.bethselamin.de/posts/%s.html</link>`, post.Slug)
+		addLine(`    <guid>https://blog.bethselamin.de/posts/%s.html</guid>`, post.Slug)
+		addLine(`    <pubDate>%s</pubDate>`, post.CreationTime().Format(time.RFC1123Z))
+		addLine(`  </item>`)
+	}
+	addLine("</channel></rss>\n")
+
+	FailOnErr(ioutil.WriteFile("output/rss.xml", []byte(strings.Join(lines, "\n")), 0644))
+}
+
+func escapeHTML(s string) string {
+	s = strings.Replace(s, "&", "&amp;", -1)
+	s = strings.Replace(s, "'", "&#39;", -1)
+	s = strings.Replace(s, `"`, "&quot;", -1)
+	s = strings.Replace(s, "<", "&lt;", -1)
+	return strings.Replace(s, ">", "&gt;", -1)
 }
 
 ////////////////////////////////////////////////////////////////////////////////

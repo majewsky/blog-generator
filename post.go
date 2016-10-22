@@ -119,6 +119,20 @@ func (p *Post) Title() string {
 	return p.Slug
 }
 
+var innerHeadingsRx = regexp.MustCompile(`(?s)^(.+?)<h[1-6]>`)
+
+//ShortenedHTML is like HTML, but cut off before the second heading.
+func (p *Post) ShortenedHTML() string {
+	match := innerHeadingsRx.FindStringSubmatch(p.HTML)
+	if match == nil {
+		return p.HTML
+	}
+	return match[1] + fmt.Sprintf(
+		"<p class=\"more\"><a href=\"%s\">Read more...</a></p>",
+		p.OutputFileName(),
+	)
+}
+
 //CreationTime returns the creation timestamp as time.Time object in UTC.
 func (p *Post) CreationTime() time.Time {
 	return time.Unix(int64(p.CreationTimestamp), 0).UTC()

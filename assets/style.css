@@ -7,7 +7,7 @@ body {
     margin: 40px auto;
     padding: 0 10px;
     font-size: 18px;
-    font-family: "Source Sans Pro", sans-serif;
+    font-family: "Source Sans Pro", system-ui, sans-serif;
     line-height: 1.6;
     text-rendering: optimizeLegibility;
     font-variant-ligatures: common-ligatures;

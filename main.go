@@ -156,9 +156,14 @@ func (p *Post) Title() string {
 	return p.Slug
 }
 
+//Time returns the post timestamp as time.Time object in UTC.
+func (p *Post) Time() time.Time {
+	return time.Unix(int64(p.Timestamp), 0).UTC()
+}
+
 //Render writes the post to its output file.
 func (p *Post) Render() {
-	timeStr := time.Unix(int64(p.Timestamp), 0).UTC().Format(time.RFC1123)
+	timeStr := p.Time().Format(time.RFC1123)
 	str := p.HTML + fmt.Sprintf("<p><i>Written: %s</i></p>", timeStr)
 
 	writeFile(p.OutputFileName(), p.Title(), str)
@@ -191,6 +196,13 @@ func RenderIndex(posts []*Post) {
 					post.OutputFileName(),
 				)
 			}
+			//include permalink in initial heading
+			htmlStr = initialHeadingRx.ReplaceAllStringFunc(htmlStr, func(h1str string) string {
+				match := initialHeadingRx.FindStringSubmatch(h1str)
+				return fmt.Sprintf("<h1><a href=\"%s\">[l]</a> %s</h1>",
+					post.OutputFileName(), match[1],
+				)
+			})
 			articles = append(articles, htmlStr)
 		}
 		articlesStr = "<article>" + strings.Join(articles, "</article><article>") + "</article>"

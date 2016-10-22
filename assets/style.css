@@ -1,17 +1,17 @@
 html {
     background: #FFE;
-    font-size: 18px;
-    font-family: "Source Sans Pro", sans-serif;
-    line-height: 1.6;
-    text-rendering: optimizeLegibility;
-    font-variant-ligatures: common-ligatures;
-    font-kerning: normal;
 }
 
 body {
     max-width: 800px;
     margin: 40px auto;
     padding: 0 10px;
+    font-size: 18px;
+    font-family: "Source Sans Pro", sans-serif;
+    line-height: 1.6;
+    text-rendering: optimizeLegibility;
+    font-variant-ligatures: common-ligatures;
+    font-kerning: normal;
 }
 
 h1, h2, h3 {

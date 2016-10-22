@@ -46,7 +46,7 @@ func main() {
 		writeFile(post.OutputFileName(), post.Title(), post.HTML)
 	}
 
-	//index.html and all.html show posts in reverse order
+	//index.html and sitemap.html show posts in reverse order
 	reverse(posts)
 	RenderIndex(posts)
 	RenderAll(posts)
@@ -172,7 +172,7 @@ func RenderIndex(posts []*Post) {
 	writeFile("index.html", "", articlesStr)
 }
 
-//RenderAll generates the all.html page.
+//RenderAll generates the sitemap.html page.
 func RenderAll(posts []*Post) {
 	items := ""
 	for _, post := range posts {
@@ -180,7 +180,7 @@ func RenderAll(posts []*Post) {
 		items += fmt.Sprintf("<li><a href=\"%s\">%s</a></li>", post.OutputFileName(), post.Title())
 	}
 
-	writeFile("all.html", "Article list", "<section class=\"all\"><ul>"+items+"</ul></section>")
+	writeFile("sitemap.html", "Article list", "<section class=\"sitemap\"><ul>"+items+"</ul></section>")
 }
 
 ////////////////////////////////////////////////////////////////////////////////

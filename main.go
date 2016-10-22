@@ -214,12 +214,23 @@ func RenderIndex(posts []*Post) {
 //RenderAll generates the sitemap.html page.
 func RenderAll(posts []*Post) {
 	items := ""
+	currentMonth := ""
+
 	for _, post := range posts {
+		//add a month header when this post is from a different month than the previous one
+		month := post.Time().Format("Jan 2006")
+		if month != currentMonth {
+			items += fmt.Sprintf("</ul><h2>%s</h2><ul>", month)
+			currentMonth = month
+		}
 		//show either the initial <h1> or fall back to the slug
 		items += fmt.Sprintf("<li><a href=\"%s\">%s</a></li>", post.OutputFileName(), post.Title())
 	}
 
-	writeFile("sitemap.html", "Article list", "<section class=\"sitemap\"><ul>"+items+"</ul></section>")
+	items = strings.TrimPrefix(items, "</ul>")
+	writeFile("sitemap.html", "Article list",
+		"<section class=\"sitemap\">"+items+"</ul></section>",
+	)
 }
 
 ////////////////////////////////////////////////////////////////////////////////

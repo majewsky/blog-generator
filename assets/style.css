@@ -23,6 +23,7 @@ p {
     hyphens: auto;
     -ms-hyphens: auto;
     -webkit-hyphens: auto;
+    text-align: justify;
 }
 
 header, h1 a {
@@ -48,4 +49,14 @@ pre {
     border-radius: 5px;
     padding: 0 0.5rem;
     background: #DDC;
+    font-variant-ligatures: none;
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+blockquote {
+    border-left: 3px solid #DDC;
+    margin-left: 1rem;
+    margin-right: 2rem;
+    padding-left: 1rem;
 }

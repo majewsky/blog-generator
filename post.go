@@ -99,7 +99,7 @@ func NewPost(fileName string) *Post {
 		LastEditedTimestamp: lastEditedTimestamp,
 		Slug:                strings.TrimSuffix(fileName, ".md"),
 		Markdown:            markdownBytes,
-		HTML:                markdown.New().RenderToString(markdownBytes),
+		HTML:                markdown.New(markdown.HTML(true)).RenderToString(markdownBytes),
 	}
 }
 

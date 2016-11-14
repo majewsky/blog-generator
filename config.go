@@ -35,6 +35,7 @@ type Configuration struct {
 	TargetURL       string
 	PageName        string
 	PageDescription string
+	TemplateHTML    string
 }
 
 //SourcePath returns a path below the Configuration.SourceDir.
@@ -90,6 +91,7 @@ func init() {
 		}
 	}
 
+	//check completeness
 	if Config.SourceDir == "" {
 		failBecause("missing source-dir")
 	}
@@ -108,6 +110,11 @@ func init() {
 	if Config.PageDescription == "" {
 		failBecause("missing page-desc")
 	}
+
+	//read template.html
+	bytes, err = ioutil.ReadFile(Config.SourcePath("template.html"))
+	FailOnErr(err)
+	Config.TemplateHTML = string(bytes)
 }
 
 func failBecause(msg string, args ...interface{}) {

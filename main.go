@@ -65,9 +65,6 @@ func main() {
 	RenderIndex(posts)
 	RenderAll(posts)
 	RenderRSS(posts)
-
-	//write additional assets
-	FailOnErr(ioutil.WriteFile(Config.TargetPath("style.css"), []byte(AssetStyleCss), 0644))
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -188,7 +185,7 @@ func reverse(list []*Post) {
 }
 
 func writeFile(path, title, contents string) {
-	str := AssetTemplateHtml
+	str := Config.TemplateHTML
 
 	slashCount := strings.Count(path, "/")
 	dotdots := make([]string, 0, slashCount)

@@ -70,6 +70,8 @@ will be replaced by the generator:
   instead of absolute URLs.
 * `%CONTENT%` will be replaced by the generated page contents.
 
+If these descriptions confuse you, have a look at [my own template.html](https://github.com/majewsky/blog-data/blob/master/template.html).
+
 ### A note about Markdown
 
 The markdown dialect recognized by the generator is CommonMark. There is one

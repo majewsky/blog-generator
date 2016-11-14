@@ -1,4 +1,2 @@
-blog-generator: *.go assets.go
+blog-generator: *.go
 	go build -o $@ .
-assets.go: assets/*
-	go run assets/main.go

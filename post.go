@@ -154,7 +154,7 @@ func (p *Post) Render() {
 	} else {
 		historyURL := fmt.Sprintf("%s/commits/master/posts/%s.md", Config.SourceURL, p.Slug)
 		str += fmt.Sprintf(
-			"<p><i>Created: %s</i><br><i>Last edited: <a href=\"%s\" title=\"Commits on GitHub\">%s</a></i></p>",
+			"<p><i>Created: %s</i><br><i>Last edited: <a href=\"%s\" title=\"Commit history\">%s</a></i></p>",
 			ctime, historyURL, mtime)
 	}
 

@@ -49,7 +49,7 @@ func (p Posts) Less(i, j int) bool { return p[i].CreationTimestamp < p[j].Creati
 func (p Posts) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 
 func allPosts() []*Post {
-	dir, err := os.Open("data/posts")
+	dir, err := os.Open(Config.SourcePath("posts"))
 	FailOnErr(err)
 	fis, err := dir.Readdir(-1)
 	FailOnErr(err)
@@ -68,7 +68,7 @@ func allPosts() []*Post {
 func NewPost(fileName string) *Post {
 	//check `git log` for creation and last modification timestamp
 	cmd := exec.Command(
-		"git", "-C", "data",
+		"git", "-C", Config.SourceDir,
 		"log", "--pretty=%at", "-M", "--follow",
 		"--", "posts/"+fileName,
 	)
@@ -90,7 +90,7 @@ func NewPost(fileName string) *Post {
 	}
 
 	//read contents
-	markdownBytes, err := ioutil.ReadFile("data/posts/" + fileName)
+	markdownBytes, err := ioutil.ReadFile(Config.SourcePath("posts/" + fileName))
 	FailOnErr(err)
 
 	//generate HTML
@@ -152,10 +152,10 @@ func (p *Post) Render() {
 	if ctime == mtime {
 		str += fmt.Sprintf("<p><i>Created: %s</i></p>", ctime)
 	} else {
-		historyUrl := fmt.Sprintf("https://github.com/majewsky/blog-data/commits/master/posts/%s.md", p.Slug)
+		historyURL := fmt.Sprintf("%s/commits/master/posts/%s.md", Config.SourceURL, p.Slug)
 		str += fmt.Sprintf(
 			"<p><i>Created: %s</i><br><i>Last edited: <a href=\"%s\" title=\"Commits on GitHub\">%s</a></i></p>",
-			ctime, historyUrl, mtime)
+			ctime, historyURL, mtime)
 	}
 
 	writeFile(p.OutputFileName(), p.Title(), str)

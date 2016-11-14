@@ -29,7 +29,7 @@ import (
 
 func main() {
 	//prepare output directory
-	err := os.MkdirAll("output/posts", 0755)
+	err := os.MkdirAll(Config.TargetPath("posts"), 0755)
 	FailOnErr(err)
 
 	//list posts
@@ -67,7 +67,7 @@ func main() {
 	RenderRSS(posts)
 
 	//write additional assets
-	FailOnErr(ioutil.WriteFile("output/style.css", []byte(AssetStyleCss), 0644))
+	FailOnErr(ioutil.WriteFile(Config.TargetPath("style.css"), []byte(AssetStyleCss), 0644))
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -141,23 +141,23 @@ func RenderRSS(posts []*Post) {
 
 	addLine(`<?xml version="1.0"?>`)
 	addLine(`<rss version="2.0"><channel>`)
-	addLine(`  <title>Stefan Majewsky's Blog</title>`)
-	addLine(`  <link>https://blog.bethselamin.de</link>`)
-	addLine(`  <description>Personal blog of Stefan Majewsky</description>`)
+	addLine(`  <title>%s</title>`, Config.PageName)
+	addLine(`  <link>%s</link>`, Config.TargetURL)
+	addLine(`  <description>%s</description>`, Config.PageDescription)
 	addLine(`  <language>en</language>`)
 	addLine(`  <lastBuildDate>%s</lastBuildDate>`, time.Now().UTC().Format(time.RFC1123Z))
 	for _, post := range posts {
 		addLine(`  <item>`)
 		addLine(`    <title>%s</title>`, post.Title())
 		addLine(`    <description>%s</description>`, escapeHTML(post.ShortenedHTML()))
-		addLine(`    <link>https://blog.bethselamin.de/posts/%s.html</link>`, post.Slug)
-		addLine(`    <guid>https://blog.bethselamin.de/posts/%s.html</guid>`, post.Slug)
+		addLine(`    <link>%s/posts/%s.html</link>`, Config.TargetURL, post.Slug)
+		addLine(`    <guid>%s/posts/%s.html</guid>`, Config.TargetURL, post.Slug)
 		addLine(`    <pubDate>%s</pubDate>`, post.CreationTime().Format(time.RFC1123Z))
 		addLine(`  </item>`)
 	}
 	addLine("</channel></rss>\n")
 
-	FailOnErr(ioutil.WriteFile("output/rss.xml", []byte(strings.Join(lines, "\n")), 0644))
+	FailOnErr(ioutil.WriteFile(Config.TargetPath("rss.xml"), []byte(strings.Join(lines, "\n")), 0644))
 }
 
 func escapeHTML(s string) string {
@@ -201,11 +201,11 @@ func writeFile(path, title, contents string) {
 	str = strings.Replace(str, "%PATH_TO_ROOT%", strings.Join(dotdots, "/"), -1)
 
 	if title == "" {
-		str = strings.Replace(str, "%TITLE%", "Stefan's Blog", -1)
+		str = strings.Replace(str, "%TITLE%", Config.PageName, -1)
 	} else {
-		str = strings.Replace(str, "%TITLE%", title+" &ndash; Stefan's Blog", -1)
+		str = strings.Replace(str, "%TITLE%", title+" &ndash; "+Config.PageName, -1)
 	}
 	str = strings.Replace(str, "%CONTENT%", contents, -1)
 
-	FailOnErr(ioutil.WriteFile("output/"+path, []byte(str), 0644))
+	FailOnErr(ioutil.WriteFile(Config.TargetPath(path), []byte(str), 0644))
 }

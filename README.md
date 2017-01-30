@@ -6,7 +6,7 @@ This is the program that renders https://blog.bethselamin.de.
 
 Just `go get` this repo and find the `blog-generator` binary in `$GOBIN`. If
 you're not familiar with Go, use the following commands to install to
-`$HOME/bin`:
+`$HOME/bin` without leaving any garbage lying around:
 
 ```
 TEMPDIR="$(mktemp -d)"

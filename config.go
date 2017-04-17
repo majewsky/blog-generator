@@ -48,6 +48,11 @@ func (c Configuration) TargetPath(path string) string {
 	return filepath.Join(c.TargetDir, path)
 }
 
+//TargetPathURL returns a path below the Configuration.TargetURL.
+func (c Configuration) TargetPathURL(path string) string {
+	return strings.TrimSuffix(c.TargetURL, "/") + "/" + strings.TrimPrefix(path, "/")
+}
+
 //Config contains the configuration of the program.
 var Config Configuration
 

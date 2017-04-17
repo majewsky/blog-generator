@@ -119,6 +119,17 @@ func (p *Post) Title() string {
 	return p.Slug
 }
 
+var paragraphRx = regexp.MustCompile(`(?m)^\s*\w(?:.+\n)*`)
+
+//Description returns the first non-heading paragraph from the Markdown, if any.
+func (p *Post) Description() string {
+	match := paragraphRx.Find(p.Markdown)
+	if match == nil {
+		return ""
+	}
+	return strings.TrimSpace(string(match))
+}
+
 var innerHeadingsRx = regexp.MustCompile(`(?s)^(.+?)<h[1-6]>`)
 
 //ShortenedHTML is like HTML, but cut off before the second heading.
@@ -148,6 +159,7 @@ func (p *Post) Render() {
 	str := p.HTML
 	ctime := p.CreationTime().Format(time.RFC1123)
 	mtime := p.LastEditedTime().Format(time.RFC1123)
+	outputFileName := p.OutputFileName()
 
 	if ctime == mtime {
 		str += fmt.Sprintf("<p><i>Created: %s</i></p>", ctime)
@@ -158,5 +170,19 @@ func (p *Post) Render() {
 			ctime, historyURL, mtime)
 	}
 
-	writeFile(p.OutputFileName(), p.Title(), str)
+	metadata := map[string]string{
+		"og:title":     p.Title(),
+		"og:type":      "article",
+		"og:url":       Config.TargetPathURL(outputFileName),
+		"og:site_name": Config.PageName,
+		//TODO og:image (extract first <img> tag from article, if any)
+		"article:published_time": p.CreationTime().Format(time.RFC3339),
+		"article:modified_time":  p.LastEditedTime().Format(time.RFC3339),
+	}
+	desc := p.Description()
+	if desc != "" {
+		metadata["og:description"] = desc
+	}
+
+	writeFile(outputFileName, p.Title(), str, metadata)
 }

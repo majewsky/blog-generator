@@ -20,6 +20,7 @@ package main
 
 import (
 	"fmt"
+	"html/template"
 	"io/ioutil"
 	"os"
 	"sort"
@@ -96,7 +97,12 @@ func RenderIndex(posts []*Post) {
 		articlesStr = "<article>" + strings.Join(articles, "</article><article>") + "</article>"
 	}
 
-	writeFile("index.html", "", articlesStr)
+	metadata := map[string]string{
+		"og:title": Config.PageName,
+		"og:type":  "website",
+		"og:url":   Config.TargetURL,
+	}
+	writeFile("index.html", "", articlesStr, metadata)
 }
 
 //RenderAll generates the sitemap.html page.
@@ -118,6 +124,7 @@ func RenderAll(posts []*Post) {
 	items = strings.TrimPrefix(items, "</ul>")
 	writeFile("sitemap.html", "Article list",
 		"<section class=\"sitemap\">"+items+"</ul></section>",
+		map[string]string{},
 	)
 }
 
@@ -184,7 +191,7 @@ func reverse(list []*Post) {
 	}
 }
 
-func writeFile(path, title, contents string) {
+func writeFile(path, title, contents string, metadata map[string]string) {
 	str := Config.TemplateHTML
 
 	slashCount := strings.Count(path, "/")
@@ -203,6 +210,16 @@ func writeFile(path, title, contents string) {
 		str = strings.Replace(str, "%TITLE%", title+" &ndash; "+Config.PageName, -1)
 	}
 	str = strings.Replace(str, "%CONTENT%", contents, -1)
+
+	//format metadata according to http://ogp.me/
+	var metadataStr string
+	for key, val := range metadata {
+		metadataStr += fmt.Sprintf(
+			`<meta property="%s" content="%s" />`,
+			template.HTMLEscapeString(key), template.HTMLEscapeString(val),
+		)
+	}
+	str = strings.Replace(str, "%META%", metadataStr, -1)
 
 	FailOnErr(ioutil.WriteFile(Config.TargetPath(path), []byte(str), 0644))
 }

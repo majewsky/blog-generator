@@ -69,6 +69,9 @@ will be replaced by the generator:
 * `%PATH_TO_ROOT%` can be used in place of the `target-url` to generate relative
   instead of absolute URLs.
 * `%CONTENT%` will be replaced by the generated page contents.
+* `%META%` will be replaced by a bunch of `<meta>` tags that describe the
+  rendered page in terms of the [Open Graph Protocol](http://ogp.me/). This
+  must go into the `<head>` of the template.
 
 If these descriptions confuse you, have a look at [my own template.html](https://github.com/majewsky/blog-data/blob/master/template.html).
 

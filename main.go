@@ -32,12 +32,15 @@ func main() {
 	//prepare output directory
 	err := os.MkdirAll(Config.TargetPath("posts"), 0755)
 	FailOnErr(err)
+	err = os.MkdirAll(Config.TargetPath("pages"), 0755)
+	FailOnErr(err)
 
 	//list posts
-	posts := allPosts()
-	sort.Sort(Posts(posts))
+	posts, pages := allPosts()
+	sort.Sort(posts) //by creation timestamp
 
-	//deduplicate slugs
+	//deduplicate slugs (note that slugs for each specific post are constant over
+	//time because of how we just sorted)
 	slugSeen := make(map[string]bool)
 	for _, post := range posts {
 		if slugSeen[post.Slug] {
@@ -57,14 +60,17 @@ func main() {
 	}
 
 	//render posts
-	for _, post := range posts {
-		post.Render()
+	for _, p := range posts {
+		p.Render()
+	}
+	for _, p := range pages {
+		p.Render()
 	}
 
 	//index.html and sitemap.html show posts in reverse order
 	reverse(posts)
 	RenderIndex(posts)
-	RenderAll(posts)
+	RenderAll(posts, pages)
 	RenderRSS(posts)
 }
 
@@ -106,7 +112,7 @@ func RenderIndex(posts []*Post) {
 }
 
 //RenderAll generates the sitemap.html page.
-func RenderAll(posts []*Post) {
+func RenderAll(posts, pages []*Post) {
 	items := ""
 	currentMonth := ""
 
@@ -119,6 +125,17 @@ func RenderAll(posts []*Post) {
 		}
 		//show either the initial <h1> or fall back to the slug
 		items += fmt.Sprintf("<li><a href=\"%s\">%s</a></li>", post.OutputFileName(), post.Title())
+	}
+
+	if len(pages) > 0 {
+		items += "</ul><h2>Pages</h2><ul>"
+		sort.Slice(pages, func(i, j int) bool {
+			return pages[i].Slug < pages[j].Slug
+		})
+		for _, page := range pages {
+			//show either the initial <h1> or fall back to the slug
+			items += fmt.Sprintf("<li><a href=\"%s\">%s</a></li>", page.OutputFileName(), page.Title())
+		}
 	}
 
 	items = strings.TrimPrefix(items, "</ul>")

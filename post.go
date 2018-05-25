@@ -32,10 +32,11 @@ import (
 	"github.com/golang-commonmark/markdown"
 )
 
-//Post is a blog post.
+//Post is a blog post or page.
 type Post struct {
 	CreationTimestamp   uint64
 	LastEditedTimestamp uint64
+	IsPage              bool
 	Slug                string
 	Markdown            []byte
 	HTML                string
@@ -48,37 +49,54 @@ func (p Posts) Len() int           { return len(p) }
 func (p Posts) Less(i, j int) bool { return p[i].CreationTimestamp < p[j].CreationTimestamp }
 func (p Posts) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 
-func allPosts() []*Post {
+func allPosts() (posts, pages Posts) {
 	dir, err := os.Open(Config.SourcePath("posts"))
 	FailOnErr(err)
 	fis, err := dir.Readdir(-1)
 	FailOnErr(err)
 
-	var posts Posts
 	for _, fi := range fis {
 		if fi.Mode().IsRegular() && strings.HasSuffix(fi.Name(), ".md") {
-			posts = append(posts, NewPost(fi.Name()))
+			posts = append(posts, NewPost(false, fi.Name()))
 		}
 	}
 
-	return posts
+	dir, err = os.Open(Config.SourcePath("pages"))
+	FailOnErr(err)
+	fis, err = dir.Readdir(-1)
+	FailOnErr(err)
+
+	for _, fi := range fis {
+		if fi.Mode().IsRegular() && strings.HasSuffix(fi.Name(), ".md") {
+			pages = append(pages, NewPost(true, fi.Name()))
+		}
+	}
+
+	return
 }
 
 //NewPost creates a new Post instance.
-func NewPost(fileName string) *Post {
+func NewPost(isPage bool, fileName string) *Post {
+	dirName := "posts/"
+	if isPage {
+		dirName = "pages/"
+	}
+
 	//check `git log` for creation and last modification timestamp
 	cmd := exec.Command(
 		"git", "-C", Config.SourceDir,
 		"log", "--pretty=%at", "-M", "--follow",
-		"--", "posts/"+fileName,
+		"--", dirName+fileName,
 	)
 	var buf bytes.Buffer
 	cmd.Stdout = &buf
 	cmd.Stderr = os.Stderr
 	FailOnErr(cmd.Run())
 
-	var creationTimestamp uint64 = 0
-	var lastEditedTimestamp uint64 = 0
+	var (
+		creationTimestamp   uint64
+		lastEditedTimestamp uint64
+	)
 	for _, str := range strings.Fields(string(buf.Bytes())) {
 		timestamp, _ := strconv.ParseUint(str, 10, 64)
 		//"last edited" is the chronologically largest timestamp
@@ -90,13 +108,14 @@ func NewPost(fileName string) *Post {
 	}
 
 	//read contents
-	markdownBytes, err := ioutil.ReadFile(Config.SourcePath("posts/" + fileName))
+	markdownBytes, err := ioutil.ReadFile(Config.SourcePath(dirName + fileName))
 	FailOnErr(err)
 
 	//generate HTML
 	return &Post{
 		CreationTimestamp:   creationTimestamp,
 		LastEditedTimestamp: lastEditedTimestamp,
+		IsPage:              isPage,
 		Slug:                strings.TrimSuffix(fileName, ".md"),
 		Markdown:            markdownBytes,
 		HTML:                markdown.New(markdown.HTML(true)).RenderToString(markdownBytes),
@@ -105,7 +124,11 @@ func NewPost(fileName string) *Post {
 
 //OutputFileName returns the output filename below output/ for this Post.
 func (p *Post) OutputFileName() string {
-	return "posts/" + p.Slug + ".html"
+	dirName := "posts/"
+	if p.IsPage {
+		dirName = "pages/"
+	}
+	return dirName + p.Slug + ".html"
 }
 
 var initialHeadingRx = regexp.MustCompile(`^<h1>(.+?)</h1>`)
@@ -161,13 +184,19 @@ func (p *Post) Render() {
 	mtime := p.LastEditedTime().Format(time.RFC1123)
 	outputFileName := p.OutputFileName()
 
-	if ctime == mtime {
-		str += fmt.Sprintf("<p><i>Created: %s</i></p>", ctime)
-	} else {
-		historyURL := fmt.Sprintf("%s/commits/master/posts/%s.md", Config.SourceURL, p.Slug)
-		str += fmt.Sprintf(
-			"<p><i>Created: %s</i><br><i>Last edited: <a href=\"%s\" title=\"Commit history\">%s</a></i></p>",
-			ctime, historyURL, mtime)
+	if !p.IsPage {
+		if ctime == mtime {
+			str += fmt.Sprintf("<p><i>Created: %s</i></p>", ctime)
+		} else {
+			dirName := "posts"
+			if p.IsPage {
+				dirName = "pages"
+			}
+			historyURL := fmt.Sprintf("%s/commits/master/%s/%s.md", Config.SourceURL, dirName, p.Slug)
+			str += fmt.Sprintf(
+				"<p><i>Created: %s</i><br><i>Last edited: <a href=\"%s\" title=\"Commit history\">%s</a></i></p>",
+				ctime, historyURL, mtime)
+		}
 	}
 
 	metadata := map[string]string{
